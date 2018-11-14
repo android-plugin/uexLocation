@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <uexplugins>
     <plugin
-        uexName="uexLocation" version="4.0.2" build="2">
-        <info>2:提高定位服务的存活率</info>
+        uexName="uexLocation" version="4.3.2" build="3">
+        <info>3:添加动态权限申请</info>
+        <build>2:提高定位服务的存活率</build>
         <build>1:更换AppKey</build>
         <build>0:定位功能插件</build>
     </plugin>
