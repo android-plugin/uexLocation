@@ -13,7 +13,7 @@
     <!-- 因为百度定位只要配置一个死的key就可以，所以直接写死一个 -->
     <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
-            android:value="RXpm4e0nc8Qyokpi6Lo5T0KE"/>
+            android:value="$uexBaiduMap_APIKey$"/>
 
     <service
             android:name="com.baidu.location.f"
