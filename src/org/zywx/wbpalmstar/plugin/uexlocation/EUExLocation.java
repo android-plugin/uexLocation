@@ -12,19 +12,21 @@ import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.widget.Toast;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.zywx.wbpalmstar.base.BDebug;
 import org.zywx.wbpalmstar.engine.EBrowserActivity;
 import org.zywx.wbpalmstar.engine.EBrowserView;
 import org.zywx.wbpalmstar.engine.universalex.EUExBase;
 import org.zywx.wbpalmstar.engine.universalex.EUExCallback;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class EUExLocation extends EUExBase{
     private static final String TAG = "EUExLocation";
@@ -205,10 +207,8 @@ public class EUExLocation extends EUExBase{
 
 	private class QueryTask extends Thread{
 
-		public String mLatitude;
-		public String mLongitude;
-		public HttpGet mHttpGet;
-		public DefaultHttpClient mHttpClient;
+		private String mLatitude;
+		private String mLongitude;
 		private boolean mShutDown;
 		private int mFlag;
 
@@ -218,26 +218,64 @@ public class EUExLocation extends EUExBase{
 			mFlag = flag;
 		}
 
+		private String InputStreamTOString(InputStream is) {
+
+			String result = "";
+			BufferedReader reader = null;
+			try {
+				reader = new BufferedReader(
+						new InputStreamReader(is, "UTF-8"));
+				StringBuilder sb = new StringBuilder();
+				String line;
+				while ((line = reader.readLine()) != null) {
+					sb.append(line);
+				}
+				result = sb.toString();
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if (is != null) {
+					try {
+						is.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				if (reader != null) {
+					try {
+						reader.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			return result;
+		}
+
 		@Override
 		public void run() {
 			try {
-                mHttpGet = new HttpGet("http://api.map.baidu.com/geocoder/v2/?output=json&ak=lqAjltjYASwZRLQnOj2aTA9Y&location=" + mLatitude + "," + mLongitude);
-                mHttpClient = new DefaultHttpClient();
-				HttpResponse response = mHttpClient.execute(mHttpGet);
-				int responseCode = response.getStatusLine().getStatusCode();
-				if (responseCode == HttpStatus.SC_OK) {
-					HttpEntity httpEntity = response.getEntity();
-					String charSet = EntityUtils.getContentCharSet(httpEntity);
-					if (null == charSet) {
-						charSet = "UTF-8";
-					}
-					String str = new String(EntityUtils.toByteArray(httpEntity), charSet);
+				String geocoderUrl = "http://api.map.baidu.com/geocoder/v2/?output=json&ak=lqAjltjYASwZRLQnOj2aTA9Y&location=" + mLatitude + "," + mLongitude;
+//				String geocoderUrl = "http://api.map.baidu.com/reverse_geocoding/v3/?output=json&ak=lqAjltjYASwZRLQnOj2aTA9Y&location=" + mLatitude + "," + mLongitude + "&coordtype=bd09ll";
+				URL geocoderURLObject = new URL(geocoderUrl);
+				HttpURLConnection defaultHttpConnection = (HttpURLConnection) geocoderURLObject.openConnection();
+				defaultHttpConnection.setRequestMethod("GET");
+				defaultHttpConnection.setInstanceFollowRedirects(true);
+				defaultHttpConnection.connect();
+				int responseCode = defaultHttpConnection.getResponseCode();
+				if (responseCode == 200) {
+					InputStream in = defaultHttpConnection.getInputStream();
+					String resultStr = InputStreamTOString(in);
 					if(mShutDown){
 						return;
 					}
-					JSONObject json = new JSONObject(str);
+					JSONObject json = new JSONObject(resultStr);
 					String status = json.getString("status");
 					if(!"0".equals(status)){
+						// 服务结果返回错误，可能是百度key配置异常，或者权限未开通等原因
+						BDebug.e(TAG, "getAddressByType QueryTask result: " + resultStr);
 						if (null != getAddressFunId) {
 							callbackToJs(Integer.parseInt(getAddressFunId), false, EUExCallback.F_C_FAILED,  json.getString("message"));
 						}else{
@@ -245,6 +283,7 @@ public class EUExLocation extends EUExBase{
 						}
 						return;
 					}
+					// 返回结果正常，开始解析数据
 					JSONObject result = json.getJSONObject("result");
 					if(mFlag == 1){
 						JSONObject cbResult = new JSONObject();
@@ -284,25 +323,12 @@ public class EUExLocation extends EUExBase{
 			} catch (Exception e) {
 				errorCallback(0, EUExCallback.F_E_UEXlOCATION_GETADDRESS, "netWork error");
 				return;
-			}finally{
-				if(null != mHttpGet){
-					mHttpGet.abort();
-				}
-				if(null != mHttpClient){
-					mHttpClient.getConnectionManager().shutdown();
-				}
 			}
 			errorCallback(0, EUExCallback.F_E_UEXlOCATION_GETADDRESS, "netWork error");
 		}
 
 		public void shutDown(){
 			mShutDown = true;
-			if(null != mHttpGet){
-				mHttpGet.abort();
-			}
-			if(null != mHttpClient){
-				mHttpClient.getConnectionManager().shutdown();
-			}
 		}
 	}
 

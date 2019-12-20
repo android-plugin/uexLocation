@@ -8,9 +8,13 @@ import com.baidu.location.BDLocationListener;
 import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
 
+import org.zywx.wbpalmstar.base.BDebug;
+
 import java.util.ArrayList;
 
 public class BaiduLocation {
+
+    private static final String TAG = "BaiduLocation";
 
     static final String LOCAL = "BaiduLocSdkInfo";
     static final String LAST_LAT = "last_lat";
@@ -199,6 +203,8 @@ public class BaiduLocation {
                     dRadius = location.getRadius();
                     saveLastLoc(dLat, dLog, dRadius);
                     mLastLocationTime = System.currentTimeMillis();
+                }else{
+                    BDebug.e(TAG, "onReceiveLocation Error TypeCode: " + type);
                 }
             }
             innerLocCallback(dLat, dLog, dRadius);
