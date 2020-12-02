@@ -257,8 +257,8 @@ public class EUExLocation extends EUExBase{
 		@Override
 		public void run() {
 			try {
-				String geocoderUrl = "http://api.map.baidu.com/geocoder/v2/?output=json&ak=lqAjltjYASwZRLQnOj2aTA9Y&location=" + mLatitude + "," + mLongitude;
-//				String geocoderUrl = "http://api.map.baidu.com/reverse_geocoding/v3/?output=json&ak=lqAjltjYASwZRLQnOj2aTA9Y&location=" + mLatitude + "," + mLongitude + "&coordtype=bd09ll";
+//				String geocoderUrl = "http://api.map.baidu.com/geocoder/v2/?output=json&ak=SUwsynO408YIcMoY64wU77EY7pfO6rzX&location=" + mLatitude + "," + mLongitude;
+				String geocoderUrl = "http://api.map.baidu.com/reverse_geocoding/v3/?output=json&ak=SUwsynO408YIcMoY64wU77EY7pfO6rzX&location=" + mLatitude + "," + mLongitude + "&coordtype=bd09ll"; // note: SUwsynO408YIcMoY64wU77EY7pfO6rzX 本AK申请者为yipeng，有问题可联系sandy1108@163.com
 				URL geocoderURLObject = new URL(geocoderUrl);
 				HttpURLConnection defaultHttpConnection = (HttpURLConnection) geocoderURLObject.openConnection();
 				defaultHttpConnection.setRequestMethod("GET");
