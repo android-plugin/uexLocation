@@ -45,3 +45,9 @@ captures/
 .project
 .cproject
 .settings/
+
+### AppCan Butterfly Plugins Ignore ###
+
+uex*/dex/*.jar
+uex*/jar/plugin_uex*.jar
+uex*.zip
