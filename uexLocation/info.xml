@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <uexplugins>
     <plugin
-        uexName="uexLocation" version="4.4.7" build="2020120101">
-        <info>7:修复逆地理编码接口无法获取地址的问题（更换了ak）</info>
+        uexName="uexLocation" version="4.6.8" build="2021030501">
+        <info>8:适配4.6引擎，解决后台插件中运行时缺失权限会导致异常无回调的问题</info>
+        <build>7:修复逆地理编码接口无法获取地址的问题（更换了ak）</build>
         <build>6:优化逆地理编码方法的实现；为了保证定位正确，本版本开始必须在config.xml中配置百度地图的key。具体办法参考uexBaiduMap插件文档。</build>
         <build>4:更新sdk</build>
         <build>3:添加动态权限申请</build>

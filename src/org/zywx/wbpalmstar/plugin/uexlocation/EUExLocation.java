@@ -62,8 +62,20 @@ public class EUExLocation extends EUExBase{
 		// android6.0以上动态权限申请
 		if (mContext.checkCallingOrSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
 				!= PackageManager.PERMISSION_GRANTED){
-			requsetPerssions(Manifest.permission.ACCESS_FINE_LOCATION, "请先申请权限"
-					+ Manifest.permission.ACCESS_FINE_LOCATION, 1);
+			try {
+				requestPermissions(Manifest.permission.ACCESS_FINE_LOCATION, "请先申请权限"
+						+ Manifest.permission.ACCESS_FINE_LOCATION, 1);
+			} catch (Exception e) {
+				if (parm.length > 0) {
+					openLocationFunId = parm[parm.length - 1];
+					callbackToJs(Integer.parseInt(openLocationFunId), false, EUExCallback.F_C_FAILED);
+				} else {
+					jsCallback(functionl, 0, EUExCallback.F_C_INT, EUExCallback.F_C_FAILED);
+				}
+				if (BDebug.isDebugMode()){
+					e.printStackTrace();
+				}
+			}
 		} else {
 			if (!checkSetting()) {
 				if (parm.length > 0) {
@@ -418,7 +430,15 @@ public class EUExLocation extends EUExBase{
 				if (!ActivityCompat.shouldShowRequestPermissionRationale((EBrowserActivity)mContext, permissions[0])) {
 					Toast.makeText(mContext, "请先设置权限" + permissions[0], Toast.LENGTH_LONG).show();
 				} else {
-					requsetPerssions(Manifest.permission.ACCESS_FINE_LOCATION, "请先申请权限" + permissions[0], 1);
+					try {
+						requestPermissions(Manifest.permission.ACCESS_FINE_LOCATION, "请先申请权限" + permissions[0], 1);
+					} catch (Exception e) {
+						// 请求权限发生异常，应该回到openLocation方法中，重新走判断和回调逻辑。
+						openLocation(openLocationParams);
+						if (BDebug.isDebugMode()){
+							e.printStackTrace();
+						}
+					}
 				}
 			}
 		}
