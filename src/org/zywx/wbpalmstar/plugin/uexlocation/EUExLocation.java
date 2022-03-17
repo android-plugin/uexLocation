@@ -9,8 +9,8 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.text.TextUtils;
 import android.util.Log;
-import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -59,6 +59,9 @@ public class EUExLocation extends EUExBase{
 
 	public void openLocation(String[] parm) {
 		openLocationParams = parm;
+		if (parm.length > 0) {
+			openLocationFunId = parm[parm.length - 1];
+		}
 		// android6.0以上动态权限申请
 		if (mContext.checkCallingOrSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
 				!= PackageManager.PERMISSION_GRANTED){
@@ -66,15 +69,10 @@ public class EUExLocation extends EUExBase{
 				requestPermissions(Manifest.permission.ACCESS_FINE_LOCATION, "请先申请权限"
 						+ Manifest.permission.ACCESS_FINE_LOCATION, 1);
 			} catch (Exception e) {
-				if (parm.length > 0) {
-					openLocationFunId = parm[parm.length - 1];
-					callbackToJs(Integer.parseInt(openLocationFunId), false, EUExCallback.F_C_FAILED);
-				} else {
-					jsCallback(functionl, 0, EUExCallback.F_C_INT, EUExCallback.F_C_FAILED);
-				}
 				if (BDebug.isDebugMode()){
 					e.printStackTrace();
 				}
+				callbackLocationDenied(new String[]{ Manifest.permission.ACCESS_FINE_LOCATION });
 			}
 		} else {
 			if (!checkSetting()) {
@@ -183,6 +181,7 @@ public class EUExLocation extends EUExBase{
 	public void closeLocation(String[] parm) {
 		BaiduLocation bdl = BaiduLocation.get(mContext);
 		bdl.closeLocation(mLCallback);
+		openLocationFunId = null;
 	}
 
 	private boolean checkSetting(){
@@ -415,6 +414,46 @@ public class EUExLocation extends EUExBase{
         }
     }
 
+    private void callbackLocationDenied(String[] permissions) {
+    	// 定位权限请求失败，需要给前端回调这种情况
+		JSONObject resultJson = null;
+		int errorCode = 2;
+		try {
+			resultJson = new JSONObject();
+			if (permissions == null || permissions.length == 0) {
+				resultJson.put("errCode", errorCode);
+				resultJson.put("errMsg", "未授权定位权限，定位功能将无法使用");
+			} else {
+				// 对于 ActivityCompat.shouldShowRequestPermissionRationale
+				// 1：用户拒绝了该权限，没有勾选"不再提醒"，此方法将返回true。
+				// 2：用户拒绝了该权限，有勾选"不再提醒"，此方法将返回 false。
+				// 3：如果用户同意了权限，此方法返回false
+				// 拒绝了权限且勾选了"不再提醒"
+				// 总之：此方法返回false的时候，代表用户再也不想要这个权限了，也没法申请了。只能再次弹提示说明丢失权限的后果，功能无法使用。
+				if (ActivityCompat.shouldShowRequestPermissionRationale((EBrowserActivity)mContext, permissions[0])) {
+					errorCode = 201;
+					resultJson.put("errCode", errorCode);
+					resultJson.put("errMsg", "本次定位权限请求失败，无法获取定位信息：" + permissions[0]);
+				} else {
+					errorCode = 202;
+					resultJson.put("errCode", errorCode);
+					resultJson.put("errMsg", "定位权限无法获取，定位功能将无法使用：" + permissions[0]);
+				}
+			}
+		} catch (Exception e) {
+			if (BDebug.isDebugMode()){
+				e.printStackTrace();
+			}
+		}
+		if (!TextUtils.isEmpty(openLocationFunId)) {
+			callbackToJs(Integer.parseInt(openLocationFunId), false, errorCode, resultJson);
+		} else {
+			jsCallback(functionl, 0, EUExCallback.F_C_INT, errorCode);
+		}
+		BDebug.i(TAG, "onRequestPermissionResult: request denied: ", permissions[0]);
+		BDebug.i(TAG, "onRequestPermissionResult callback: ", resultJson);
+	}
+
 	@Override
 	public void onRequestPermissionResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 		super.onRequestPermissionResult(requestCode, permissions, grantResults);
@@ -422,24 +461,7 @@ public class EUExLocation extends EUExBase{
 			if (grantResults[0] != PackageManager.PERMISSION_DENIED){
 				openLocation(openLocationParams);
 			} else {
-				// 对于 ActivityCompat.shouldShowRequestPermissionRationale
-				// 1：用户拒绝了该权限，没有勾选"不再提醒"，此方法将返回true。
-				// 2：用户拒绝了该权限，有勾选"不再提醒"，此方法将返回 false。
-				// 3：如果用户同意了权限，此方法返回false
-				// 拒绝了权限且勾选了"不再提醒"
-				if (!ActivityCompat.shouldShowRequestPermissionRationale((EBrowserActivity)mContext, permissions[0])) {
-					Toast.makeText(mContext, "请先设置权限" + permissions[0], Toast.LENGTH_LONG).show();
-				} else {
-					try {
-						requestPermissions(Manifest.permission.ACCESS_FINE_LOCATION, "请先申请权限" + permissions[0], 1);
-					} catch (Exception e) {
-						// 请求权限发生异常，应该回到openLocation方法中，重新走判断和回调逻辑。
-						openLocation(openLocationParams);
-						if (BDebug.isDebugMode()){
-							e.printStackTrace();
-						}
-					}
-				}
+				callbackLocationDenied(permissions);
 			}
 		}
 	}
